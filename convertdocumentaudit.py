@@ -6,17 +6,17 @@ import echart
 connectionEChart = echart.getechartconnection()     #pyodbc.connect(eChartConn)
 cursorEChart = connectionEChart.cursor()
 
-clinicConn = 'DRIVER={SQL Server};SERVER=BEHMSRV1\BKUPEXEC;DATABASE=mcbean.clinic;Trusted_Connection=yes'
-#clinicConn = 'DRIVER={SQL Server};SERVER=WELCOMETOSHIBA\SQLEXPRESS;DATABASE=mcbean_clinic;Trusted_Connection=yes'
+#clinicConn = 'DRIVER={SQL Server};SERVER=BEHMSRV1\BKUPEXEC;DATABASE=mcbean_clinic;Trusted_Connection=yes'
+clinicConn = 'DRIVER={SQL Server};SERVER=WELCOMETOSHIBA\SQLEXPRESS;DATABASE=mcbean_clinic;Trusted_Connection=yes'
 clinicConnection = pyodbc.connect(clinicConn)
 clinicCursor = clinicConnection.cursor()
 echartUsersCursor = connectionEChart.cursor()
 
 # - order: document_number,createdby,creationdate,modifiedby,modifieddate
 
-sql = "INSERT INTO EChartAuditTrail (Document_number, CreatedBy, CreatedDate, ModifiedBy, ModifiedDate) VALUES (%d,'%s','%s','%s','%s')"
+sql = "INSERT INTO EChartAuditTrail (Document_number, CreatedBy, CreatedDate, ModifiedBy, ModifiedDate) VALUES (%d,'%s-echart','%s','%s-echart','%s')"
 
-cursorEChart.execute(echart.getDocumentAudit())
+cursorEChart.execute(echart.getDocumentAudit(0))
 docs = cursorEChart.fetchall();
 count = 0
 
@@ -68,6 +68,32 @@ for user in users:
 
 clinicCursor.commit()
 clinicCursor.close()
+
+# need to find the identities in the new system for the user's in the echart audit trail
+
+sql = 'SELECT loginName FROM UserAccount'
+clinicCursor = clinicConnection.cursor()
+clinicCursor.execute(sql)
+users = clinicCursor.fetchall()
+
+for user in users:
+    print 'finding identity for %s and updating...' % user[0]
+    sql = "SELECT UserAccountId FROM UserAccount WHERE LoginName = '%s'"
+    query = sql % user[0]
+    clinicCursor.execute(query)
+    identity = clinicCursor.fetchall()
+    for i in identity:
+        sql = "UPDATE EChartAuditTrail SET ModifiedById=%d WHERE modifiedBy='%s'"
+        query = sql % (i[0],user[0])
+        clinicCursor.execute(query)
+        clinicCursor.commit()
+        sql = "UPDATE EChartAuditTrail SET CreatedById=%d WHERE createdBy = '%s'"
+        query = sql % (i[0],user[0])
+        clinicCursor.execute(query)
+        clinicCursor.commit()
+        
+    clinicCursor.commit()
+
 clinicConnection.close()
 
 cursorEChart.close()

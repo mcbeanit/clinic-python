@@ -1,3 +1,4 @@
+
 # access to echart database objects for conversion and support
 
 import pyodbc
@@ -31,11 +32,12 @@ def getdocumentSql(id):
 def getpatientlist():
     return 'SELECT dat_index_number FROM patient_demographics'
 
-# smoke tests
+	
+def getShortCutCodes():
+	return 'SELECT ShortcutCode,ReplacementText FROM LU_SHORTCUTCODES'
 
-assert 'hello' == strip_non_ascii('hello')
-assert '' == strip_non_ascii('')
+def getDocumentAudit(startAt):
+    return 'SELECT document_number,createdby,creationdate,modifiedby,modifieddate FROM DOCUMENT_DESCRIPTION where document_number > %d' % startAt
 
-y = None
-z = nonetostr(y)
-assert z == ''
+
+
